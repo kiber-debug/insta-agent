@@ -1,0 +1,48 @@
+name: Instagram агент
+
+on:
+  schedule:
+    - cron: "0 5 * * *"   # ҳар куни 10:00 (Тошкент вақти)
+  workflow_dispatch:       # қўлда "Run workflow" тугмаси
+
+permissions:
+  contents: write
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - name: Агентни ишга тушириш
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          IMGBB_KEY: ${{ secrets.IMGBB_KEY }}
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          IMAGE_PROVIDER: ${{ vars.IMAGE_PROVIDER || '' }}
+          LAYOUT: ${{ vars.LAYOUT || 'portrait' }}
+          SUBJECT: ${{ vars.SUBJECT || 'person' }}
+          MODE: ${{ vars.MODE || 'preview' }}
+          POST_LANGUAGE: ${{ vars.POST_LANGUAGE || 'ўзбек тили (лотин ёзуви)' }}
+          BLOG_NICHE: ${{ vars.BLOG_NICHE || 'буюк одамларнинг ҳикматли цитаталари' }}
+          BLOG_HANDLE: ${{ vars.BLOG_HANDLE || '' }}
+        run: python agent.py
+      - name: Расмларни сақлаш
+        uses: actions/upload-artifact@v4
+        with:
+          name: posts
+          path: out/
+      - name: Тарихни сақлаш
+        run: |
+          git config user.name "agent"
+          git config user.email "agent@users.noreply.github.com"
+          git add history.json
+          git diff --staged --quiet || (git commit -m "history" && git push)
